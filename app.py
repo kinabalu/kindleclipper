@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 from jwt import (
     JWT,
     jwk_from_dict,
@@ -11,9 +13,7 @@ import requests
 import click
 import re
 
-from dotenv import load_dotenv
-load_dotenv()
-
+import settings
 
 instance = JWT()
 
@@ -41,7 +41,7 @@ def jwk():
 def read():
 
     # https://read.amazon.com/notebook?asin=B082RS7N3X&contentLimitState=&=
-    cookie = os.getenv('AMAZON_COOKIE')
+    cookie = settings.AMAZON_COOKIE
 
     res = requests.get('https://read.amazon.com/notebook',
                        headers={
@@ -62,7 +62,7 @@ def parse_my_clippings():
 
     highlight_re = r"^\s-\sYour\sHighlight\son\spage\s([0-9]*)\s|\sLocation\s([0-9]*)-([0-9]*)\s|\sAdded on (.*)$"
     clippings = []
-    with open('My Clippings.txt', 'r') as clippings_file:
+    with open(settings.MY_CLIPPINGS_PATH, 'r') as clippings_file:
         data = clippings_file.read()
         entries = data.split(separator + '\n')
         for entry in entries:
@@ -119,8 +119,8 @@ def login():
 
         login_inputs[name] = value
 
-    login_inputs['email'] = os.getenv('AMAZON_USERNAME')
-    login_inputs['password'] = os.getenv('AMAZON_PASSWORD')
+    login_inputs['email'] = settings.AMAZON_USERNAME
+    login_inputs['password'] = settings.AMAZON_PASSWORD
 
     pprint.pprint(login_inputs)
     login_res = requests.post('https://www.amazon.com/ap/signin',
