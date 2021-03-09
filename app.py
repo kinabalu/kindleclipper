@@ -55,12 +55,10 @@ def read():
     print(res.text)
 
 
-@cli.command()
 def parse_my_clippings():
-
     separator = '=========='
 
-    highlight_re = r"^\s-\sYour\sHighlight\son\spage\s([0-9]*)\s|\sLocation\s([0-9]*)-([0-9]*)\s|\sAdded on (.*)$"
+    highlight_re = r"^[^\d]*(\d*)[^\d]*([\d]*)-([\d]*) | Added on (.*)$"
     clippings = []
     with open(settings.MY_CLIPPINGS_PATH, 'r') as clippings_file:
         data = clippings_file.read()
@@ -71,29 +69,52 @@ def parse_my_clippings():
             if len(lines) <= 1:
                 continue
 
-            book_title = lines[0]
+            book_title = lines[0].encode('ascii', 'ignore').decode()
             highlight_metadata = lines[1]
 
+            metadata = {}
+            metadata_type = None
+            metadata_split = highlight_metadata.split('|')
             if highlight_metadata.find('Bookmark') > -1:
-                print(highlight_metadata)
-                z = re.match(highlight_re, highlight_metadata)
-                if z:
-                    print(z.groups())
+                metadata_type = 'bookmark'
+                page_num_search = re.findall('\d+', metadata_split[0])
+                page_num = int(page_num_search[0])
+                range_search = re.findall('\d+', metadata_split[1])
+
+                added_search = re.findall(
+                    '\sAdded on\s(.*)', metadata_split[2])
+                metadata['page'] = page_num
+                metadata['location_1'] = int(range_search[0])
+                metadata['date'] = added_search[0]
 
             if highlight_metadata.find('Highlight') > -1:
+                metadata_type = 'highlight'
                 highlight_detail = lines[3]
-                print(highlight_metadata)
-                z = re.search(highlight_re, highlight_metadata,
-                              flags=re.M | re.X)
-                if z:
-                    print(z.groups())
+
+                page_num_search = re.findall('\d+', metadata_split[0])
+                page_num = int(page_num_search[0])
+                range_search = re.findall('\d+', metadata_split[1])
+
+                added_search = re.findall(
+                    '\sAdded on\s(.*)', metadata_split[2])
+                metadata['page'] = page_num
+                metadata['location_1'] = int(range_search[0])
+                metadata['location_2'] = int(range_search[1])
+                metadata['date'] = added_search[0]
 
             clippings.append({
                 'title': book_title,
-                'metadata': highlight_metadata,
+                'metadata': metadata,
+                'type': metadata_type,
                 'detail': highlight_detail
             })
 
+    return clippings
+
+
+@cli.command()
+def my_clippings():
+    clippings = parse_my_clippings()
     pprint.pprint(clippings)
 
 
